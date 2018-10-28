@@ -96,6 +96,7 @@ public class Application extends JFrame {
         compareButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
                 try {
+                    textArea.setText("Processing...");
                     List<Error> errors = compare(file1.getText(), file2.getText(), Integer.parseInt(tolerance.getText()));
                     textArea.setText(getErrorText(errors));
                 } catch (Exception e) {
