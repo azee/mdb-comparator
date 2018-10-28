@@ -7,8 +7,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.sql.SQLException;
+
 import java.util.List;
 
 import static ru.greatbit.mdb.comparator.Comparer.compare;
@@ -83,12 +82,21 @@ public class Application extends JFrame {
         scroll.setBounds(20, 140, 700, 400);
         panel.add(scroll);
 
+        JLabel toleranceLabel = new JLabel("Tolerance %");
+        toleranceLabel.setBounds(250, 50, 100, 30);
+        panel.add(toleranceLabel);
+
+        JTextField tolerance = new JTextField();
+        tolerance.setBounds(350, 50, 50, 30);
+        tolerance.setText("0");
+        panel.add(tolerance);
+
         JButton compareButton = new JButton("Compare");
         compareButton.setBounds(300, 90, 100, 30);
         compareButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
                 try {
-                    List<Error> errors = compare(file1.getText(), file2.getText());
+                    List<Error> errors = compare(file1.getText(), file2.getText(), Integer.parseInt(tolerance.getText()));
                     textArea.setText(getErrorText(errors));
                 } catch (Exception e) {
                     e.printStackTrace();

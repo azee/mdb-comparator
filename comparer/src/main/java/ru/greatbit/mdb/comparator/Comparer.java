@@ -13,14 +13,7 @@ import static java.lang.String.format;
 
 public class Comparer {
 
-    public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException {
-//        List<Error> errors = compare("/home/azee/Downloads/AM2003.mdb", "/home/azee/Downloads/AM2003.mdb");
-        List<Error> errors = compare("/home/azee/Downloads/AM2003.mdb", "/home/azee/Downloads/PainAway.mdb");
-
-        System.out.println(errors);
-    }
-
-    public static List<Error> compare(String path1, String path2) throws SQLException, ClassNotFoundException, IOException {
+    public static List<Error> compare(String path1, String path2, int tolerance) throws SQLException, ClassNotFoundException, IOException {
         List<Error> errors = new LinkedList<>();
 
         Set<String> tables1 = new TreeSet<>();
@@ -38,7 +31,7 @@ public class Comparer {
         }
 
         for (String table : tables1){
-            Error error = tablesEqual(db1, db2, table);
+            Error error = tablesEqual(db1, db2, table, tolerance);
             if (error != null){
                 error.setPath1(path1);
                 error.setPath2(path2);
@@ -50,7 +43,7 @@ public class Comparer {
         return errors;
     }
 
-    private static Error tablesEqual(Database db1, Database db2, String tableName) throws IOException {
+    private static Error tablesEqual(Database db1, Database db2, String tableName, int tolerance) throws IOException {
         Table table1 = db1.getTable(tableName);
         Table table2 = db2.getTable(tableName);
 
@@ -112,6 +105,24 @@ public class Comparer {
 
                 if (val1 == null && val2 == null) continue;
 
+                //Validate numeric values
+                if (val1 instanceof Integer && val2 instanceof Integer &&
+                        ((Integer)val1 - (Integer)val2) * 100 > tolerance) {
+                    return getNumericError(val1, val2, i, key, tableName);
+                }
+                if (val1 instanceof Double && val2 instanceof Double &&
+                        ((Double)val1 - (Double) val2) * 100 > tolerance) {
+                    return getNumericError(val1, val2, i, key, tableName);
+                }
+                if (val1 instanceof Float && val2 instanceof Float &&
+                        ((Float)val1 - (Float) val2) * 100 > tolerance) {
+                    return getNumericError(val1, val2, i, key, tableName);
+                }
+                if (val1 instanceof Short && val2 instanceof Short &&
+                        ((Short)val1 - (Short) val2) * 100 > tolerance) {
+                    return getNumericError(val1, val2, i, key, tableName);
+                }
+
                 if (!val1.toString().equals(val2.toString())){
                     return new Error(format("Values are different in table %s, row %s, column %s. Got values [%s] and [%s] for files %s and %s",
                             tableName, i, key, val1, val2, file1, file2));
@@ -121,6 +132,11 @@ public class Comparer {
         }
 
         return null;
+    }
+
+    private static Error getNumericError(Object val1, Object val2, int row, String columnName, String tableName){
+        return new Error(format("Values are different in table %s, row %s, column %s. Got values [%s] and [%s]",
+                tableName, row, columnName, val1, val2));
     }
 
     private static boolean validateTablesListsEqual(Set<String> tables1, Set<String> tables2) {
