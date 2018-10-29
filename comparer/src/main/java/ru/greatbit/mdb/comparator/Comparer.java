@@ -106,24 +106,28 @@ public class Comparer {
                 if (val1 == null && val2 == null) continue;
 
                 //Validate numeric values
-                if (val1 instanceof Integer && val2 instanceof Integer &&
-                        ((Integer)val1 - (Integer)val2) * 100 > tolerance) {
-                    return getNumericError(val1, val2, i, key, tableName);
-                }
-                if (val1 instanceof Double && val2 instanceof Double &&
-                        ((Double)val1 - (Double) val2) * 100 > tolerance) {
-                    return getNumericError(val1, val2, i, key, tableName);
-                }
-                if (val1 instanceof Float && val2 instanceof Float &&
-                        ((Float)val1 - (Float) val2) * 100 > tolerance) {
-                    return getNumericError(val1, val2, i, key, tableName);
-                }
-                if (val1 instanceof Short && val2 instanceof Short &&
-                        ((Short)val1 - (Short) val2) * 100 > tolerance) {
-                    return getNumericError(val1, val2, i, key, tableName);
-                }
 
-                if (!val1.toString().equals(val2.toString())){
+                if (val1 instanceof Integer && val2 instanceof Integer) {
+                    int relDiff = 100 * (Math.abs((Integer)val1 - (Integer)val2));
+                    if (relDiff != 0 && relDiff / Math.max((Integer)val1, (Integer)val2) > tolerance){
+                        return getNumericError(val1, val2, i, key, tableName);
+                    }
+                } else if (val1 instanceof Double && val2 instanceof Double) {
+                    double relDiff = 100 * (Math.abs((Double) val1 - (Double) val2));
+                    if (relDiff != 0 && relDiff / Math.max((Double) val1, (Double) val2) > tolerance){
+                        return getNumericError(val1, val2, i, key, tableName);
+                    }
+                } else if (val1 instanceof Float && val2 instanceof Float) {
+                    float relDiff = 100 * (Math.abs((Float) val1 - (Float) val2));
+                    if (relDiff != 0 && relDiff / Math.max((Float) val1, (Float) val2) > tolerance){
+                        return getNumericError(val1, val2, i, key, tableName);
+                    }
+                } else if (val1 instanceof Short && val2 instanceof Short) {
+                    int relDiff = 100 * (Math.abs((Short)val1 - (Short) val2));
+                    if (relDiff != 0 && relDiff / Math.max((Short)val1, (Short)val2) > tolerance){
+                        return getNumericError(val1, val2, i, key, tableName);
+                    }
+                } else if (!val1.toString().equals(val2.toString())){
                     return new Error(format("Values are different in table %s, row %s, column %s. Got values [%s] and [%s] for files %s and %s",
                             tableName, i, key, val1, val2, file1, file2));
                 }
