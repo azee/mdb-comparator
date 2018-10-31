@@ -22,20 +22,9 @@
         <dependency>
             <groupId>com.healthmarketscience.jackcess</groupId>
             <artifactId>jackcess</artifactId>
-            <version>1.2.12</version>
+            <version>2.2.0</version>
             <type>jar</type>
         </dependency>
-
-        <!--<dependency>-->
-            <!--<groupId>io.airlift</groupId>-->
-            <!--<artifactId>airline</artifactId>-->
-            <!--<version>0.8</version>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>ojdbc</groupId>-->
-            <!--<artifactId>ojdbc</artifactId>-->
-            <!--<version>14</version>-->
-        <!--</dependency>-->
 
         <!--Test-->
         <dependency>
