@@ -8,6 +8,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import java.util.Date;
 import java.util.List;
 
 import static ru.greatbit.mdb.comparator.Comparer.compare;
@@ -97,8 +98,10 @@ public class Application extends JFrame {
             public void actionPerformed(ActionEvent event) {
                 try {
                     textArea.setText("Processing...");
+                    long now = new Date().getTime();
                     List<Error> errors = compare(file1.getText(), file2.getText(), Integer.parseInt(tolerance.getText()));
-                    textArea.setText(getErrorText(errors));
+                    long processedIn = (new Date().getTime() - now) / 1000;
+                    textArea.setText(getErrorText(errors, processedIn));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -112,12 +115,13 @@ public class Application extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
     }
 
-    private String getErrorText(List<Error> errors) {
+    private String getErrorText(List<Error> errors, long processedIn) {
         if (errors.size() == 0){
             return "Files are identical";
         } else {
             StringBuffer sb = new StringBuffer();
-            sb.append("Found ").append(errors.size()).append(" errors\n");
+            sb.append("Processed in ").append(processedIn).append(" seconds. \n");
+            sb.append("Found ").append(errors.size()).append(" errors\n\n");
             errors.forEach(error -> {
                 sb.append(error.getMessage()).append("\n\n");
             });
