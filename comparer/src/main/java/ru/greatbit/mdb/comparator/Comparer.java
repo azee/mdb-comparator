@@ -82,8 +82,6 @@ public class Comparer {
         List<Error> errors = new LinkedList<>();
         String tableName = table1.getName();
 
-        System.out.println("Comparing tables " + tableName);
-
         List<Row> rows1 = new LinkedList<>();
         List<Row> rows2 = new LinkedList<>();
 
