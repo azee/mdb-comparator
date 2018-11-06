@@ -6,17 +6,18 @@ import com.healthmarketscience.jackcess.Table;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.abs;
 import static java.lang.String.format;
 
 public class Comparer {
 
     private final static int ERRORS_LIMIT_PER_TABLE = 10;
 
-    public static List<Error> compare(String path1, String path2, int tolerance) throws SQLException, ClassNotFoundException, IOException {
+    public static List<Error> compare(String path1, String path2, int tolerance) throws IOException {
         List<Error> errors = new LinkedList<>();
 
         Set<String> tables1 = new TreeSet<>();
@@ -46,8 +47,6 @@ public class Comparer {
     private static List<Error> tablesEqual(Database db1, Database db2, String tableName, int tolerance) throws IOException {
         Table table1 = db1.getTable(tableName);
         Table table2 = db2.getTable(tableName);
-
-
 
         List<Error> errors = new LinkedList<>();
 
@@ -80,25 +79,25 @@ public class Comparer {
     private static Collection<? extends Error> copareRows(Table table1, Table table2,
                                                           String file1Path, String file2Path,
                                                           int tolerance) throws IOException {
-
         List<Error> errors = new LinkedList<>();
         String tableName = table1.getName();
 
-        List<Map<String, Object>> rows1 = new LinkedList<>();
-        List<Map<String, Object>> rows2 = new LinkedList<>();
+        System.out.println("Comparing tables " + tableName);
 
+        List<Row> rows1 = new LinkedList<>();
+        List<Row> rows2 = new LinkedList<>();
 
         for (int i = 0; i < table1.getRowCount(); i++){
-            rows1.add(table1.getNextRow());
-            rows2.add(table2.getNextRow());
+            rows1.add(new Row(table1.getNextRow()));
+            rows2.add(new Row(table2.getNextRow()));
         }
 
         if (rows1.size() == 0){
             return errors;
         }
 
-        for (String key : rows1.get(0).keySet()){
-            if (!rows2.get(0).keySet().contains(key)){
+        for (String key : rows1.get(0).getData().keySet()){
+            if (!rows2.get(0).getData().keySet().contains(key)){
                 return Collections.singletonList(
                         new Error(format("Column %s exists in the %s document but missing in %s for table %s",
                         key, file1Path, file2Path, tableName))
@@ -106,8 +105,8 @@ public class Comparer {
             }
         }
 
-        for (String key : rows2.get(0).keySet()){
-            if (!rows1.get(0).keySet().contains(key)){
+        for (String key : rows2.get(0).getData().keySet()){
+            if (!rows1.get(0).getData().keySet().contains(key)){
                 return Collections.singletonList(
                         new Error(format("Column %s exists in the %s document but missing in %s for table %s",
                         key, file1Path, file2Path, tableName))
@@ -115,6 +114,15 @@ public class Comparer {
             }
         }
 
+        rows1.stream().sorted(new Comparator<Row>() {
+            @Override
+            public int compare(Row o1, Row o2) {
+                if (o1 instanceof Comparable && o2 instanceof Comparable){
+                    return ((Comparable)o1).compareTo(o2);
+                }
+                return 0;
+            }
+        });
         for (int i = 0; i < rows1.size(); i++){
             if (errors.size() >= ERRORS_LIMIT_PER_TABLE){
                 return errors;
@@ -122,28 +130,51 @@ public class Comparer {
             if (!findSuitableRow(rows1.get(i), rows2, tolerance)){
                 errors.add(
                         new Error(format("Row %s in table %s from file %s was not found in file %s \n %s",
-                                i + 1, tableName, file1Path, file2Path, rowToString(rows1.get(i))))
+                                i + 1, tableName, file1Path, file2Path, rowToString(rows1.get(i).getData())))
                 );
             }
         }
         return errors;
     }
 
-    private static boolean findSuitableRow(Map<String, Object> row1, List<Map<String, Object>> rows2, int tolerance) {
+    private static boolean findSuitableRow(Row row1, List<Row> rows2, int tolerance) {
         for (int i = 0; i < rows2.size(); i++){
-            Map<String, Object> row2 = rows2.get(i);
 
-            if (row1.size() != row2.size()){
+            Object sortFieldValue1 = row1.getSortFieldValue();
+            Object sortFieldValue2 = rows2.get(i).getSortFieldValue();
+
+            if (sortFieldValue1 instanceof Number &&
+                    sortFieldValue2 instanceof Number &&
+                    ((Comparable)sortFieldValue1).compareTo(sortFieldValue2) < 0 &&
+                    getDiff((Number)sortFieldValue1, (Number)sortFieldValue2).floatValue() > tolerance){
+                return false;
+            }
+
+            Row row2 = rows2.get(i);
+            Map<String, Object> row2Data = row2.getData();
+
+            if (row1.getData().size() != row2Data.size()){
                 continue;
             }
 
-            if (rowsMatch(row1, row2, tolerance)){
+            if (rowsMatch(row1.getData(), row2Data, tolerance)){
                 rows2.remove(row2);
                 return true;
             }
         }
-
         return false;
+    }
+
+    private static Number getDiff(Number sortFieldValue1, Number sortFieldValue2) {
+        if(sortFieldValue1 instanceof Double || sortFieldValue2 instanceof Double) {
+            return abs(sortFieldValue1.doubleValue() - sortFieldValue2.doubleValue());
+        } else if(sortFieldValue1 instanceof Float || sortFieldValue2 instanceof Float) {
+            return abs(sortFieldValue1.floatValue() + sortFieldValue2.floatValue());
+        } else if(sortFieldValue1 instanceof Long || sortFieldValue2 instanceof Long) {
+            return abs(sortFieldValue1.longValue() + sortFieldValue2.longValue());
+        } else {
+            return abs(sortFieldValue1.intValue() + sortFieldValue2.intValue());
+        }
     }
 
     private static boolean rowsMatch(Map<String, Object> row1, Map<String, Object> row2, int tolerance) {
@@ -164,22 +195,22 @@ public class Comparer {
             //Validate numeric values
 
             if (val1 instanceof Integer && val2 instanceof Integer) {
-                int relDiff = 100 * (Math.abs((Integer)val1 - (Integer)val2));
+                int relDiff = 100 * (abs((Integer)val1 - (Integer)val2));
                 if (relDiff != 0 && relDiff / Math.max((Integer)val1, (Integer)val2) > tolerance){
                     return false;
                 }
             } else if (val1 instanceof Double && val2 instanceof Double) {
-                double relDiff = 100 * (Math.abs((Double) val1 - (Double) val2));
+                double relDiff = 100 * (abs((Double) val1 - (Double) val2));
                 if (relDiff != 0 && relDiff / Math.max((Double) val1, (Double) val2) > tolerance){
                     return false;
                 }
             } else if (val1 instanceof Float && val2 instanceof Float) {
-                float relDiff = 100 * (Math.abs((Float) val1 - (Float) val2));
+                float relDiff = 100 * (abs((Float) val1 - (Float) val2));
                 if (relDiff != 0 && relDiff / Math.max((Float) val1, (Float) val2) > tolerance){
                     return false;
                 }
             } else if (val1 instanceof Short && val2 instanceof Short) {
-                int relDiff = 100 * (Math.abs((Short)val1 - (Short) val2));
+                int relDiff = 100 * (abs((Short)val1 - (Short) val2));
                 if (relDiff != 0 && relDiff / Math.max((Short)val1, (Short)val2) > tolerance){
                     return false;
                 }

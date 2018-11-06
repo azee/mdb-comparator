@@ -116,11 +116,12 @@ public class Application extends JFrame {
     }
 
     private String getErrorText(List<Error> errors, long processedIn) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("Processed in ").append(processedIn).append(" seconds. \n");
         if (errors.size() == 0){
-            return "Files are identical";
+            sb.append("Files are identical");
+            return sb.toString();
         } else {
-            StringBuffer sb = new StringBuffer();
-            sb.append("Processed in ").append(processedIn).append(" seconds. \n");
             sb.append("Found ").append(errors.size()).append(" errors\n\n");
             errors.forEach(error -> {
                 sb.append(error.getMessage()).append("\n\n");
